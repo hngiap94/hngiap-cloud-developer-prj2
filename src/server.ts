@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
 
@@ -30,6 +30,41 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   /**************************************************************************** */
 
   //! END @TODO1
+  app.get("/filteredimage", async (req: Request, res: Response) => {
+    let { image_url } = req.query;
+    console.log(`image_url: ${image_url}`)
+
+    // 1. Validate image URL from query
+    // 1.1. Validate image_url is empty
+    if (!image_url) {
+      return res.status(400).send("Image URL is required!") ;
+    }
+    // 1.2. Validate image_url is invalid
+    if (!isValidURL(image_url as string)) {
+      return res.status(400).send("Invalid image URL!") ;
+    }
+
+    try {
+      const filtered_image = await filterImageFromURL(image_url as string);
+  
+      return res.status(200).sendFile(filtered_image, () => {
+        deleteLocalFiles([filtered_image]);
+      });
+    } catch (error) {
+      return res.status(400).send("Cannot process this image. Please try an other image!");
+    }
+  });
+
+  // Validate if an url is valid or not
+  function isValidURL(urlToValidate: string): boolean {
+    try {
+      const url = new URL(urlToValidate);
+      console.log(url)
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch (err) {
+      return false;
+    }
+  }
   
   // Root Endpoint
   // Displays a simple message to the user
